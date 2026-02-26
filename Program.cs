@@ -118,8 +118,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-var hostPort = Environment.GetEnvironmentVariable("PORT");
-if (string.IsNullOrWhiteSpace(hostPort))
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PORT")))
 {
     app.UseHttpsRedirection();
 }
@@ -136,11 +136,4 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
-if (string.IsNullOrWhiteSpace(hostPort))
-{
-    app.Run();
-}
-else
-{
-    app.Run($"http://0.0.0.0:{hostPort}");
-}
+app.Run($"http://0.0.0.0:{port}");
