@@ -1,0 +1,26 @@
+@model IEnumerable<SmartELibrary.Models.Semester>
+@{
+    ViewData["Title"] = "Semesters";
+}
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card"><div class="card-body">
+            <h6>Create Semester</h6>
+            <form asp-action="CreateSemester" method="post">
+                <input name="name" class="form-control mb-2" placeholder="Semester name" required />
+                <button class="btn btn-primary">Create</button>
+            </form>
+        </div></div>
+    </div>
+    <div class="col-md-8">
+        <div class="card"><div class="card-body table-responsive">
+            <table class="table table-sm"><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody>
+            @foreach (var semester in Model)
+            {
+                <tr><td>@semester.Name</td><td>@(semester.IsActive ? "Active" : "Inactive")</td></tr>
+            }
+            </tbody></table>
+        </div></div>
+    </div>
+</div>

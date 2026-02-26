@@ -1,0 +1,49 @@
+@model IEnumerable<SmartELibrary.Models.Material>
+@{
+    ViewData["Title"] = "Digital Library";
+    var semesters = ViewBag.Semesters as List<SmartELibrary.Models.Semester> ?? new();
+    var subjects = ViewBag.Subjects as List<SmartELibrary.Models.Subject> ?? new();
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-3">
+                <select name="semesterId" class="form-select">
+                    <option value="">All Semesters</option>
+                    @foreach (var s in semesters)
+                    {
+                        <option value="@s.Id">@s.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="subjectId" class="form-select">
+                    <option value="">All Subjects</option>
+                    @foreach (var s in subjects)
+                    {
+                        <option value="@s.Id">@s.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4"><input name="search" class="form-control" placeholder="Search materials" /></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100">Filter</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+@foreach (var material in Model)
+{
+    <div class="col-md-4">
+        <div class="card material-card h-100">
+            <div class="card-body">
+                <h6>@material.Title</h6>
+                <p class="text-muted mb-1">@material.Subject?.Name - @material.Semester?.Name</p>
+                <p class="text-muted">@material.MaterialType</p>
+                <a class="btn btn-sm btn-outline-primary" asp-action="ReadMaterial" asp-route-id="@material.Id">Open</a>
+            </div>
+        </div>
+    </div>
+}
+</div>

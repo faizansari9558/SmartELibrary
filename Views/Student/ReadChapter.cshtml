@@ -1,0 +1,363 @@
+@model SmartELibrary.ViewModels.ReadMaterialPageViewModel
+@{
+    ViewData["Title"] = "Read Chapter";
+}
+
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h5 class="mb-1">@Model.MaterialTitle</h5>
+                <div class="text-muted">Page @Model.PageNumber of @Model.TotalPages</div>
+            </div>
+            <div class="text-muted">@Model.PageTitle</div>
+        </div>
+
+        <hr />
+
+        <div class="read-landscape">
+            @Html.Raw(Model.HtmlContent)
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div>
+                @if (!Model.IsFirstPage)
+                {
+                    <a class="btn btn-outline-secondary" asp-action="ReadChapter" asp-route-materialId="@Model.MaterialId" asp-route-pageNumber="@(Model.PageNumber - 1)">Previous</a>
+                }
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-primary" id="completeBtn">
+                    @(Model.IsLastPage ? "Complete" : "Complete & Next")
+                </button>
+            </div>
+        </div>
+
+        @if (Model.HasMandatoryQuizAfterThisPage)
+        {
+            <div class="alert alert-info mt-3 mb-0">
+                This page has a quiz. Your answers are saved for learning analytics.
+            </div>
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="quizModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Mandatory Quiz</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="quizError" class="alert alert-danger d-none"></div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div id="quizProgress" class="text-muted small"></div>
+                    <div id="quizQuestionCount" class="text-muted small"></div>
+                </div>
+                <div id="quizQuestion" class="fw-semibold mb-3"></div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="quizOption" id="optA" value="A">
+                    <label class="form-check-label" for="optA" id="lblA"></label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="quizOption" id="optB" value="B">
+                    <label class="form-check-label" for="optB" id="lblB"></label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="quizOption" id="optC" value="C">
+                    <label class="form-check-label" for="optC" id="lblC"></label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="quizOption" id="optD" value="D">
+                    <label class="form-check-label" for="optD" id="lblD"></label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="prevQuestionBtn">Previous</button>
+                <button type="button" class="btn btn-outline-secondary" id="nextQuestionBtn">Next</button>
+                <button type="button" class="btn btn-primary" id="submitQuizBtn">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const pageId = @Model.PageId;
+    let activeQuizId = @((Model.QuizId ?? 0));
+    let quizQuestions = [];
+    let currentIndex = 0;
+    const answers = {};
+    const minSeconds = 0;
+    let baseSeconds = Math.floor(@Model.TimeSpentSeconds);
+    let activeSeconds = 0;
+    let maxScrollDepthPercent = 0;
+    let lastInteractionAt = Date.now();
+    const idleThresholdMs = 15000;
+    const quizModalEl = document.getElementById('quizModal');
+    const quizModal = new bootstrap.Modal(quizModalEl, { backdrop: 'static', keyboard: false });
+    let pendingQuizId = 0;
+    let quizSubmitted = false;
+    function formatTime(totalSeconds) {
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = Math.floor(totalSeconds % 60);
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function updateTimerUI() {
+        const total = baseSeconds + activeSeconds;
+        const timer = document.getElementById('readTimer');
+        if (!timer) {
+            return;
+        }
+        timer.textContent = `Reading time: ${formatTime(total)} / 03:00`;
+        const ready = document.getElementById('readReady');
+        if (!ready) {
+            return;
+        }
+        if (total >= minSeconds) {
+            ready.classList.remove('d-none');
+        } else {
+            ready.classList.add('d-none');
+        }
+    }
+
+    function recordInteraction() {
+        lastInteractionAt = Date.now();
+    }
+
+    ['mousemove', 'keydown', 'touchstart', 'click'].forEach((evt) => {
+        document.addEventListener(evt, recordInteraction, { passive: true });
+    });
+
+    window.addEventListener('scroll', recordInteraction, { passive: true });
+    const interactionContainer = document.querySelector('.read-landscape');
+    if (interactionContainer) {
+        interactionContainer.addEventListener('scroll', recordInteraction, { passive: true });
+    }
+
+    setInterval(() => {
+        const isActiveWindow = document.visibilityState === 'visible' && document.hasFocus();
+        const isIdle = (Date.now() - lastInteractionAt) > idleThresholdMs;
+        if (isActiveWindow && !isIdle) {
+            activeSeconds += 1;
+            updateTimerUI();
+        }
+    }, 1000);
+
+    function updateMaxScrollDepth() {
+        const container = document.querySelector('.read-landscape');
+
+        // Prefer the content container scroll metrics when it actually scrolls;
+        // otherwise fallback to window/document scroll.
+        let scrollTop = 0;
+        let clientHeight = 0;
+        let scrollHeight = 0;
+
+        if (container && container.scrollHeight > container.clientHeight) {
+            scrollTop = container.scrollTop;
+            clientHeight = container.clientHeight;
+            scrollHeight = container.scrollHeight;
+        } else {
+            const doc = document.documentElement;
+            scrollTop = window.scrollY || doc.scrollTop || 0;
+            clientHeight = window.innerHeight || doc.clientHeight || 0;
+            scrollHeight = doc.scrollHeight || 0;
+        }
+
+        if (scrollHeight <= clientHeight || scrollHeight === 0) {
+            maxScrollDepthPercent = Math.max(maxScrollDepthPercent, 100);
+            return;
+        }
+
+        const current = ((scrollTop + clientHeight) / scrollHeight) * 100;
+        if (Number.isFinite(current)) {
+            maxScrollDepthPercent = Math.max(maxScrollDepthPercent, Math.max(0, Math.min(current, 100)));
+        }
+    }
+
+    window.addEventListener('scroll', updateMaxScrollDepth, { passive: true });
+    const readContainer = document.querySelector('.read-landscape');
+    if (readContainer) {
+        readContainer.addEventListener('scroll', updateMaxScrollDepth, { passive: true });
+    }
+    updateMaxScrollDepth();
+
+    updateTimerUI();
+
+    function setQuizError(msg) {
+        const el = document.getElementById('quizError');
+        el.textContent = msg;
+        el.classList.remove('d-none');
+    }
+
+    function clearQuizError() {
+        const el = document.getElementById('quizError');
+        el.textContent = '';
+        el.classList.add('d-none');
+    }
+
+    function renderQuestion() {
+        const question = quizQuestions[currentIndex];
+        if (!question) {
+            return;
+        }
+
+        document.getElementById('quizQuestion').textContent = question.questionText;
+        document.getElementById('lblA').textContent = question.optionA;
+        document.getElementById('lblB').textContent = question.optionB;
+        document.getElementById('lblC').textContent = question.optionC;
+        document.getElementById('lblD').textContent = question.optionD;
+        document.getElementById('quizProgress').textContent = `Question ${currentIndex + 1}`;
+        document.getElementById('quizQuestionCount').textContent = `of ${quizQuestions.length}`;
+
+        const selected = answers[question.questionId];
+        document.querySelectorAll('input[name="quizOption"]').forEach((input) => {
+            input.checked = selected === input.value;
+        });
+
+        document.getElementById('prevQuestionBtn').disabled = currentIndex === 0;
+        document.getElementById('nextQuestionBtn').disabled = currentIndex >= quizQuestions.length - 1;
+    }
+
+    function storeAnswer() {
+        const selected = document.querySelector('input[name="quizOption"]:checked');
+        const question = quizQuestions[currentIndex];
+        if (!question) {
+            return;
+        }
+
+        if (selected) {
+            answers[question.questionId] = selected.value;
+        }
+    }
+
+    async function loadQuiz() {
+        const quizIdParam = pendingQuizId && pendingQuizId > 0 ? `&quizId=${pendingQuizId}` : '';
+        const res = await fetch(`@Url.Action("GetPageQuiz")?pageId=${pageId}${quizIdParam}`);
+        if (!res.ok) {
+            setQuizError('Quiz could not be loaded.');
+            return;
+        }
+        const data = await res.json();
+        activeQuizId = data.quizId;
+        quizQuestions = data.questions || [];
+        currentIndex = 0;
+        Object.keys(answers).forEach(key => delete answers[key]);
+        clearQuizError();
+        if (quizQuestions.length === 0) {
+            setQuizError('Quiz has no questions.');
+            return;
+        }
+        renderQuestion();
+    }
+
+    document.getElementById('completeBtn').addEventListener('click', async function () {
+        updateMaxScrollDepth();
+        const res = await fetch('@Url.Action("CompletePage")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `pageId=${pageId}&activeSeconds=${activeSeconds}&maxScrollDepthPercent=${encodeURIComponent(maxScrollDepthPercent)}`
+        });
+
+        if (!res.ok) {
+            alert('Could not complete page.');
+            return;
+        }
+
+        const data = await res.json();
+        if (!data.ok) {
+            alert('Could not complete page.');
+            return;
+        }
+
+        baseSeconds = data.recordedSeconds || baseSeconds;
+        activeSeconds = 0;
+        updateTimerUI();
+
+        if (data.requiresQuiz) {
+            pendingNextUrl = data.nextUrl;
+            pendingQuizId = data.quizId || 0;
+            quizSubmitted = false;
+            await loadQuiz();
+            quizModal.show();
+            return;
+        }
+
+        if (data.isLast) {
+            window.location.href = '@Url.Action("Library")';
+            return;
+        }
+
+        window.location.href = data.nextUrl;
+    });
+
+    let pendingNextUrl = null;
+
+    async function submitQuiz() {
+        clearQuizError();
+        if (Object.keys(answers).length < quizQuestions.length) {
+            setQuizError('Please answer all questions before submitting.');
+            return;
+        }
+
+        const res = await fetch('@Url.Action("SubmitPageQuiz")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pageId, quizId: activeQuizId, answers })
+        });
+
+        const data = await res.json();
+        if (!data.ok) {
+            setQuizError(data.message || 'Quiz submission failed.');
+            return;
+        }
+
+        quizSubmitted = true;
+        quizModal.hide();
+        window.location.href = data.nextUrl;
+    }
+
+    document.getElementById('prevQuestionBtn').addEventListener('click', function () {
+        storeAnswer();
+        if (currentIndex > 0) {
+            currentIndex -= 1;
+            renderQuestion();
+        }
+    });
+
+    document.getElementById('nextQuestionBtn').addEventListener('click', function () {
+        storeAnswer();
+        if (!answers[quizQuestions[currentIndex]?.questionId]) {
+            setQuizError('Please select an option to continue.');
+            return;
+        }
+        clearQuizError();
+        if (currentIndex < quizQuestions.length - 1) {
+            currentIndex += 1;
+            renderQuestion();
+        }
+    });
+
+    document.getElementById('submitQuizBtn').addEventListener('click', async function () {
+        storeAnswer();
+        await submitQuiz();
+    });
+
+    document.querySelectorAll('input[name="quizOption"]').forEach((input) => {
+        input.addEventListener('change', function () {
+            storeAnswer();
+            clearQuizError();
+        });
+    });
+
+    quizModalEl.addEventListener('hidden.bs.modal', function () {
+        // Prevent skipping mandatory quiz after completion.
+        if (!quizSubmitted) {
+            setTimeout(() => quizModal.show(), 0);
+        }
+    });
+</script>
+}

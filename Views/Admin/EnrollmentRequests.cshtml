@@ -1,0 +1,60 @@
+@model IEnumerable<SmartELibrary.ViewModels.EnrollmentRequestRowViewModel>
+@{
+    ViewData["Title"] = "Semester Enrollment Requests";
+}
+
+<div class="card">
+    <div class="card-body table-responsive">
+        @if (TempData["Error"] is not null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+        @if (TempData["Success"] is not null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+
+        <h6 class="mb-3">Semester Enrollment Requests</h6>
+        <table class="table table-striped align-middle">
+            <thead>
+            <tr>
+                <th>Enrollment Number</th>
+                <th>Student Name</th>
+                <th>Semester</th>
+                <th>Status</th>
+                <th>Enrolled</th>
+                <th>Decision</th>
+                <th style="width: 220px;">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in Model)
+            {
+                var isPending = string.Equals(row.Status, "Pending", StringComparison.OrdinalIgnoreCase);
+                <tr>
+                    <td>@(string.IsNullOrWhiteSpace(row.EnrollmentNumber) ? "-" : row.EnrollmentNumber)</td>
+                    <td>@row.StudentName</td>
+                    <td>@row.SemesterName</td>
+                    <td>@row.Status</td>
+                    <td>@row.EnrolledAtUtc.ToString("dd/MM/yyyy")</td>
+                    <td>@(row.ApprovedAtUtc.HasValue ? row.ApprovedAtUtc.Value.ToString("dd/MM/yyyy") : "-")</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <form asp-action="ApproveEnrollment" method="post">
+                                <input type="hidden" name="enrollmentId" value="@row.EnrollmentId" />
+                                <input type="hidden" name="returnTo" value="EnrollmentRequests" />
+                                <button class="btn btn-sm btn-success" type="submit" @(isPending ? "" : "disabled")>Approve</button>
+                            </form>
+                            <form asp-action="RejectEnrollment" method="post">
+                                <input type="hidden" name="enrollmentId" value="@row.EnrollmentId" />
+                                <input type="hidden" name="returnTo" value="EnrollmentRequests" />
+                                <button class="btn btn-sm btn-danger" type="submit" @(isPending ? "" : "disabled")>Reject</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

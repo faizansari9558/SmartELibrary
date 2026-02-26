@@ -1,0 +1,215 @@
+@model SmartELibrary.ViewModels.AdminUsersViewModel
+@{
+    ViewData["Title"] = "Manage Users";
+}
+
+<div class="card">
+    <div class="card-body table-responsive">
+        @if (TempData["Error"] is not null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+        @if (TempData["Success"] is not null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+
+        <form class="row g-2 align-items-end mb-3" method="get">
+            <div class="col-sm-4">
+                <label class="form-label">Filter</label>
+                <select class="form-select" name="role">
+                    <option value="All" selected="@(string.Equals(Model.RoleFilter, "All", StringComparison.OrdinalIgnoreCase))">All</option>
+                    <option value="Admin" selected="@(string.Equals(Model.RoleFilter, "Admin", StringComparison.OrdinalIgnoreCase))">Admin</option>
+                    <option value="Teacher" selected="@(string.Equals(Model.RoleFilter, "Teacher", StringComparison.OrdinalIgnoreCase))">Teacher</option>
+                    <option value="Student" selected="@(string.Equals(Model.RoleFilter, "Student", StringComparison.OrdinalIgnoreCase))">Student</option>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button class="btn btn-primary w-100" type="submit">Apply</button>
+            </div>
+        </form>
+
+        @{
+            var admins = Model.Users.Where(x => string.Equals(x.Role, "Admin", StringComparison.OrdinalIgnoreCase)).ToList();
+            var teachers = Model.Users.Where(x => string.Equals(x.Role, "Teacher", StringComparison.OrdinalIgnoreCase)).ToList();
+            var students = Model.Users.Where(x => string.Equals(x.Role, "Student", StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        @if (admins.Count > 0)
+        {
+            <h5 class="mt-2">Admins</h5>
+            <table class="table table-striped align-middle">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Approved</th>
+                    <th>Created</th>
+                    <th style="width: 320px;">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var user in admins)
+                {
+                    var statusClass = user.IsApproved ? "bg-success" : "bg-warning";
+                    <tr>
+                        <td>@user.Name</td>
+                        <td>@user.PhoneNumber</td>
+                        <td><span class="badge @statusClass">@(user.IsApproved ? "Approved" : "Pending")</span></td>
+                        <td>@user.CreatedAtUtc.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a class="btn btn-sm btn-primary" asp-action="EditUser" asp-route-userId="@user.UserId">Edit</a>
+
+                                @if (!user.IsApproved)
+                                {
+                                    <form asp-action="ApproveUser" method="post">
+                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                        <input type="hidden" name="role" value="@Model.RoleFilter" />
+                                        <button class="btn btn-sm btn-success" type="submit">Approve</button>
+                                    </form>
+                                }
+
+                                <form asp-action="DeleteUser" method="post" onsubmit="return confirm('Delete this user?');">
+                                    <input type="hidden" name="userId" value="@user.UserId" />
+                                    <input type="hidden" name="role" value="@Model.RoleFilter" />
+                                    <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+
+        @if (teachers.Count > 0)
+        {
+            <h5 class="mt-4">Teachers</h5>
+            <table class="table table-striped align-middle">
+                <thead>
+                <tr>
+                    <th>Teacher ID</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Approved Teacher</th>
+                    <th>Created</th>
+                    <th>Assigned Subjects</th>
+                    <th style="width: 320px;">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var user in teachers)
+                {
+                    var statusClass = user.IsApproved ? "bg-success" : "bg-warning";
+                    <tr>
+                        <td>@(string.IsNullOrWhiteSpace(user.TeacherId) ? "-" : user.TeacherId)</td>
+                        <td>@user.Name</td>
+                        <td>@user.PhoneNumber</td>
+                        <td><span class="badge @statusClass">@(user.IsApproved ? "Approved" : "Pending")</span></td>
+                        <td>@user.CreatedAtUtc.ToString("dd/MM/yyyy")</td>
+                        <td>@(user.AssignedSubjectCount.HasValue ? user.AssignedSubjectCount.Value.ToString() : "-")</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a class="btn btn-sm btn-primary" asp-action="EditUser" asp-route-userId="@user.UserId">Edit</a>
+
+                                @if (!user.IsApproved)
+                                {
+                                    <form asp-action="ApproveUser" method="post">
+                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                        <input type="hidden" name="role" value="@Model.RoleFilter" />
+                                        <button class="btn btn-sm btn-success" type="submit">Approve</button>
+                                    </form>
+                                }
+
+                                <form asp-action="DeleteUser" method="post" onsubmit="return confirm('Delete this user?');">
+                                    <input type="hidden" name="userId" value="@user.UserId" />
+                                    <input type="hidden" name="role" value="@Model.RoleFilter" />
+                                    <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+
+        @if (students.Count > 0)
+        {
+            <h5 class="mt-4">Students</h5>
+            <table class="table table-striped align-middle">
+                <thead>
+                <tr>
+                    <th>Enrollment No</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Approved Student</th>
+                    <th>Created</th>
+                    <th>Enrolled Semesters</th>
+                    <th style="width: 320px;">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var user in students)
+                {
+                    var statusClass = user.IsApproved ? "bg-success" : "bg-warning";
+                    <tr>
+                        <td>@(string.IsNullOrWhiteSpace(user.EnrollmentNumber) ? "-" : user.EnrollmentNumber)</td>
+                        <td>@user.Name</td>
+                        <td>@user.PhoneNumber</td>
+                        <td><span class="badge @statusClass">@(user.IsApproved ? "Approved" : "Pending")</span></td>
+                        <td>@user.CreatedAtUtc.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            @if (user.Enrollments.Count == 0)
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-column gap-1">
+                                    @foreach (var enrollment in user.Enrollments)
+                                    {
+                                        var enrollmentClass = enrollment.Status switch
+                                        {
+                                            "Approved" => "bg-success",
+                                            "Rejected" => "bg-danger",
+                                            _ => "bg-warning"
+                                        };
+                                        <span class="badge @enrollmentClass">@enrollment.SemesterName - @enrollment.Status</span>
+                                    }
+                                </div>
+                            }
+                        </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a class="btn btn-sm btn-primary" asp-action="EditUser" asp-route-userId="@user.UserId">Edit</a>
+
+                                    @if (!user.IsApproved)
+                                    {
+                                        <form asp-action="ApproveUser" method="post">
+                                            <input type="hidden" name="userId" value="@user.UserId" />
+                                            <input type="hidden" name="role" value="@Model.RoleFilter" />
+                                            <button class="btn btn-sm btn-success" type="submit">Approve</button>
+                                        </form>
+                                    }
+
+                                    <form asp-action="DeleteUser" method="post" onsubmit="return confirm('Delete this user?');">
+                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                        <input type="hidden" name="role" value="@Model.RoleFilter" />
+                                        <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+
+        @if (admins.Count == 0 && teachers.Count == 0 && students.Count == 0)
+        {
+            <div class="text-muted">No users found for the selected filter.</div>
+        }
+    </div>
+</div>

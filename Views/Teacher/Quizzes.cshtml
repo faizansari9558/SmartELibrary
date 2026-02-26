@@ -1,0 +1,18 @@
+@model IEnumerable<SmartELibrary.Models.Quiz>
+@{
+    ViewData["Title"] = "My Quizzes";
+}
+
+<div class="card">
+    <div class="card-body table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Title</th><th>Subject</th><th>Questions</th></tr></thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr><td>@item.Title</td><td>@item.Subject?.Name</td><td>@item.QuizQuestions.Count</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

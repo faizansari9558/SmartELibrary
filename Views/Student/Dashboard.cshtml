@@ -1,0 +1,39 @@
+@model SmartELibrary.ViewModels.StudentDashboardViewModel
+@{
+    ViewData["Title"] = "Student Dashboard";
+}
+
+@if (TempData["Success"] is not null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+@if (ViewBag.HasApprovedEnrollment is not null && !(bool)ViewBag.HasApprovedEnrollment)
+{
+    <div class="alert alert-warning">Your semester enrollment is pending. Digital Library access will be available after admin approval.</div>
+}
+
+<div class="card">
+    <div class="card-body table-responsive">
+        <h6>Enrolled Subjects</h6>
+        <table class="table table-sm">
+            <thead><tr><th>Semester</th><th>Subject</th></tr></thead>
+            <tbody>
+            @if (Model.Subjects.Count == 0)
+            {
+                <tr><td colspan="2" class="text-muted">No approved subjects yet.</td></tr>
+            }
+            else
+            {
+                @foreach (var item in Model.Subjects)
+                {
+                    <tr>
+                        <td>@item.SemesterName</td>
+                        <td>@item.SubjectName</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

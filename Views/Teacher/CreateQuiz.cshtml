@@ -1,0 +1,37 @@
+@{
+    ViewData["Title"] = "Create Quiz";
+    var subjects = ViewBag.Subjects as List<SmartELibrary.Models.Subject> ?? new();
+}
+
+<div class="card">
+    <div class="card-body">
+        @if (TempData["Error"] is not null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+
+        <form asp-action="CreateQuiz" method="post">
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">Title</label><input name="title" class="form-control" required /></div>
+                <div class="col-md-6">
+                    <label class="form-label">Subject</label>
+                    <select name="subjectId" class="form-select" required>
+                        <option value="">Select</option>
+                        @foreach (var s in subjects)
+                        {
+                            <option value="@s.Id">@s.Name (@s.Semester?.Name)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-12"><hr /><h6>Single MCQ (MVP)</h6></div>
+                <div class="col-md-12"><input name="questionText" class="form-control" placeholder="Question" required /></div>
+                <div class="col-md-6"><input name="optionA" class="form-control" placeholder="Option A" required /></div>
+                <div class="col-md-6"><input name="optionB" class="form-control" placeholder="Option B" required /></div>
+                <div class="col-md-6"><input name="optionC" class="form-control" placeholder="Option C" required /></div>
+                <div class="col-md-6"><input name="optionD" class="form-control" placeholder="Option D" required /></div>
+                <div class="col-md-4"><input name="correctOption" class="form-control" placeholder="Correct (A/B/C/D)" required /></div>
+            </div>
+            <button class="btn btn-primary mt-3">Create Quiz</button>
+        </form>
+    </div>
+</div>

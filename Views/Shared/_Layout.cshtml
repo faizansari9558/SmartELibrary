@@ -1,0 +1,80 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Smart E-Library</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/teacher.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/student.css" asp-append-version="true" />
+</head>
+<body>
+@{
+    var role = Context.Session.GetString("Role");
+    var name = Context.Session.GetString("Name") ?? "Guest";
+}
+<div class="topbar shadow-sm">
+    <div class="container-fluid d-flex align-items-center justify-content-between py-2 px-3">
+        <a class="brand-link" asp-controller="Home" asp-action="Index">Smart E-Library</a>
+        <div class="d-flex align-items-center gap-2">
+            <span class="title-chip">@ViewData["Title"]</span>
+            <span class="user-chip">@name (@(role ?? "Visitor"))</span>
+        </div>
+    </div>
+</div>
+
+<div class="app-shell">
+    @if (!string.IsNullOrWhiteSpace(role))
+    {
+        <aside class="sidebar">
+            <div class="sidebar-title">Menu</div>
+            @if (role == "Admin")
+            {
+                <a asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
+                <a asp-controller="Admin" asp-action="Users">Users</a>
+                <a asp-controller="Admin" asp-action="Semesters">Semesters</a>
+                <a asp-controller="Admin" asp-action="Subjects">Subjects</a>
+                <a asp-controller="Admin" asp-action="AssignTeachers">Assign Teacher</a>
+                <a asp-controller="Admin" asp-action="EnrollmentRequests">Enrollment Requests</a>
+                <a asp-controller="Admin" asp-action="SemesterStudents">Semester Students</a>
+                <a asp-controller="Admin" asp-action="Reports">Reports</a>
+            }
+            else if (role == "Teacher")
+            {
+                <a asp-controller="Teacher" asp-action="Dashboard">Dashboard</a>
+                <a asp-controller="Teacher" asp-action="UploadMaterial">Upload Material</a>
+                <a asp-controller="Teacher" asp-action="Materials">Materials</a>
+                <a asp-controller="Teacher" asp-action="CreateQuiz">Create Quiz</a>
+                <a asp-controller="Teacher" asp-action="Quizzes">Quizzes</a>
+                <a asp-controller="Teacher" asp-action="Progress">Analytics</a>
+            }
+            else if (role == "Student")
+            {
+                <a asp-controller="Student" asp-action="Dashboard">Dashboard</a>
+                <a asp-controller="Student" asp-action="EnrollSemester">Enroll Semester</a>
+                <a asp-controller="Student" asp-action="Library">Digital Library</a>
+            }
+            <a asp-controller="Auth" asp-action="Logout">Logout</a>
+        </aside>
+    }
+
+    <div class="content-area">
+        <main class="container-fluid content-wrap">
+            @RenderBody()
+        </main>
+    </div>
+</div>
+
+<!-- Include Footer Partial -->
+<partial name="_Footer" />
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

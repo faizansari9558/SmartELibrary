@@ -1,0 +1,31 @@
+@model SmartELibrary.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Admin Login";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="mb-1">Admin Login</h4>
+                <p class="mb-3">Smart E-Library with Student Progress Management System</p>
+                <form asp-action="AdminLogin" method="post">
+                    <div asp-validation-summary="All" class="text-danger mb-2"></div>
+                    <div class="mb-2">
+                        <label asp-for="PhoneNumber" class="form-label">Mobile Number</label>
+                        <input asp-for="PhoneNumber" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control" />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login as Admin</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
