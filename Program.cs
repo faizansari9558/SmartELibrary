@@ -9,18 +9,41 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    if (string.IsNullOrWhiteSpace(connectionString))
+    var host = builder.Configuration["Database:Host"]
+               ?? builder.Configuration["MYSQLHOST"];
+    var port = builder.Configuration["Database:Port"]
+               ?? builder.Configuration["MYSQLPORT"]
+               ?? "3306";
+    var name = builder.Configuration["Database:Name"]
+               ?? builder.Configuration["MYSQLDATABASE"]
+               ?? "smartelibrary_db";
+    var user = builder.Configuration["Database:User"]
+               ?? builder.Configuration["MYSQLUSER"]
+               ?? "root";
+    var password = builder.Configuration["Database:Password"]
+                   ?? builder.Configuration["MYSQLPASSWORD"]
+                   ?? string.Empty;
+
+    var connectionString = string.Empty;
+    if (!string.IsNullOrWhiteSpace(host))
     {
-        var host = builder.Configuration["Database:Host"] ?? "localhost";
-        var port = builder.Configuration["Database:Port"] ?? "3306";
-        var name = builder.Configuration["Database:Name"] ?? "smartelibrary_db";
-        var user = builder.Configuration["Database:User"] ?? "root";
-        var password = builder.Configuration["Database:Password"] ?? string.Empty;
-        connectionString = $"server={host};port={port};database={name};user={user};password={password};";
+        var isLocal = string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+                      || string.Equals(host, "127.0.0.1", StringComparison.OrdinalIgnoreCase);
+
+        connectionString = isLocal
+            ? $"server={host};port={port};database={name};user={user};password={password};"
+            : $"server={host};port={port};database={name};user={user};password={password};SslMode=Required;AllowPublicKeyRetrieval=True;Connection Timeout=30;";
     }
 
-    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)));
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+    }
+
+    options.UseMySql(
+        connectionString,
+        new MySqlServerVersion(new Version(8, 0, 36)),
+        mysqlOptions => mysqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(5), null));
 });
 
 builder.Services.AddSession(options =>
