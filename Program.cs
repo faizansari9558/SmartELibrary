@@ -118,7 +118,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+var hostPort = Environment.GetEnvironmentVariable("PORT");
+if (string.IsNullOrWhiteSpace(hostPort))
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
@@ -132,23 +136,11 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
-
-app.Run();
-
-using (var scope = app.Services.CreateScope())
+if (string.IsNullOrWhiteSpace(hostPort))
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-    try
-    {
-        db.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine(ex.Message);
-    }
+    app.Run();
 }
-
-// IMPORTANT — Render port binding
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
-app.Run($"http://0.0.0.0:{port}");
+else
+{
+    app.Run($"http://0.0.0.0:{hostPort}");
+}
